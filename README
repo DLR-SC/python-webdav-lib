@@ -1,0 +1,19 @@
+This Python WebDAV Library provides an object-oriented Python WebDAV client-side library based on Python`s standard httplib 
+and Greg Stein`s davlib. The client currently supports basic WebDAV capabilities and the WebDAV extensions for access control and
+Searching.
+
+See http://sourceforge.net/projects/pythonwebdavlib
+
+Requirements:
+Python 2.3 or higher
+
+Installation:
+Extract archive
+Run "python setup.py install"
+
+Test:
+python <Path_To_Your_SITE_PACKAGES>/webdav/WebdavClient.py
+Specify URL to your WebDAV server.
+Specify user name.
+Specify password.
+Lists content of the given collection.
