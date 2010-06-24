@@ -66,11 +66,11 @@ class Connection(DAV):
         self.logger = getDefaultLogger()
         self.isConnectedToCatacomb = True
         self.serverTypeChecked = False
-        self.lock = RLock()
+        self._lock = RLock()
          
     def _request(self, method, url, body=None, extra_hdrs={}):
         
-        self.lock.acquire()
+        self._lock.acquire()
         try:
             # add the authorization header
             extraHeaders = copy(extra_hdrs)
@@ -115,7 +115,7 @@ class Connection(DAV):
                         raise WebdavError("Cannot perform request.")
             return self.__evaluateResponse(method, response)
         finally:
-            self.lock.release()
+            self._lock.release()
         
     def __evaluateResponse(self, method, response):
         """ Evaluates the response of the WebDAV server. """
@@ -161,7 +161,7 @@ class Connection(DAV):
             self.__authorizationInfo = _DigestAuthenticationInfo(realm=realm, user=user, password=password, uri=uri, method=method, qop=qop, nonce=nonce)
 
     def putFile(self, path, srcfile, header={}):
-        self.lock.acquire()
+        self._lock.acquire()
         try:
             # Assemble header
             size = os.fstat(srcfile.fileno()).st_size        
@@ -194,7 +194,7 @@ class Connection(DAV):
                 response.close()        
             return response
         finally:
-            self.lock.release()
+            self._lock.release()
                   
     def _blockCopySocket(self, source, toSocket, blockSize):
         transferedBytes = 0
