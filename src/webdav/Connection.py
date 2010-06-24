@@ -23,13 +23,15 @@ The contained class extends the HTTPConnection class for WebDAV support.
 from httplib import HTTPConnection, CannotSendRequest, BadStatusLine, ResponseNotReady
 from copy import copy
 import base64   # for basic authentication
-import md5
+import hashlib
 import mimetypes
 import os       # file handling
 import urllib
 import types
 import socket   # to "catch" socket.error
 from threading import RLock
+from uuid import uuid4
+
 from davlib import DAV
 from qp_xml import Parser
 
@@ -73,6 +75,11 @@ class Connection(DAV):
             # add the authorization header
             extraHeaders = copy(extra_hdrs)
             if self.__authorizationInfo:
+
+                # update (digest) authorization data
+                if hasattr(self.__authorizationInfo, "update"):
+                    self.__authorizationInfo.update(method=method, uri=url)
+                
                 extraHeaders["AUTHORIZATION"] = self.__authorizationInfo.authorization
             
             # encode message parts
@@ -118,6 +125,11 @@ class Connection(DAV):
         
         if status >= Constants.CODE_LOWEST_ERROR:     # error has occured ?
             self.logger.debug("ERROR Response: " + response.read())
+            
+            # identify authentication CODE_UNAUTHORIZED, throw appropriate exception
+            if status == Constants.CODE_UNAUTHORIZED:
+                raise AuthorizationError(reason, status, response.msg["www-authenticate"])
+            
             response.close()
             raise WebdavError(reason, status)
         
@@ -143,9 +155,10 @@ class Connection(DAV):
         if user and len(user) > 0:
             self.__authorizationInfo = _BasicAuthenticationInfo(realm=realm, user=user, password=password)
                    
-    def addDigestAuthorization(self, user, password, realm=None):
+    def addDigestAuthorization(self, user, password, realm, qop, nonce, uri = None, method = None):
         if user and len(user) > 0:
-            self.__authorizationInfo = _DigestAuthenticationInfo(realm=realm, user=user, password=password)
+            # username, realm, password, uri, method, qop are required
+            self.__authorizationInfo = _DigestAuthenticationInfo(realm=realm, user=user, password=password, uri=uri, method=method, qop=qop, nonce=nonce)
 
     def putFile(self, path, srcfile, header={}):
         self.lock.acquire()
@@ -206,13 +219,58 @@ class _BasicAuthenticationInfo(object):
         self.password = None     # protect password security
         
 class _DigestAuthenticationInfo(object):
+    
+    __nc = "0000000" # in hexadecimal without leading 0x
+    
     def __init__(self, **kwArgs):
-        self.__dict__.update(kwArgs)
-        value = "%s:%s:%s" % (self.user, self.realm, self.password)
-        value = value.strip()
-        self.extra = md5.new(value).digest()
-        self.authorization = "Digest realm=%s,user=%s"
 
+        self.__dict__.update(kwArgs)
+        
+        if self.qop is None:
+            raise WebdavError("Digest without qop is not implemented.")
+        if self.qop == "auth-int":
+            raise WebdavError("Digest with qop-int is not implemented.")
+    
+    def update(self, **kwArgs):
+        """ Update input data between requests"""
+    
+        self.__dict__.update(kwArgs)
+
+    def _makeDigest(self):
+        """ Creates the digest information. """
+        
+        # increment nonce count
+        self._incrementNc()
+        
+        # username, realm, password, uri, method, qop are required
+        
+        a1 = "%s:%s:%s" % (self.user, self.realm, self.password)
+        ha1 = hashlib.md5(a1).hexdigest()
+
+        #qop == auth
+        a2 = "%s:%s" % (self.method, self.uri)
+        ha2 = hashlib.md5(a2).hexdigest()
+        
+        cnonce = str(uuid4())
+        
+        responseData = "%s:%s:%s:%s:%s:%s" % (ha1, self.nonce, _DigestAuthenticationInfo.__nc, cnonce, self.qop, ha2)
+        digestResponse = hashlib.md5(responseData).hexdigest()
+        
+        authorization = "Digest username=\"%s\", realm=\"%s\", nonce=\"%s\", uri=\"%s\", algorithm=MD5, response=\"%s\", qop=auth, nc=%s, cnonce=\"%s\"" \
+                        % (self.user, self.realm, self.nonce, self.uri, digestResponse, _DigestAuthenticationInfo.__nc, cnonce)
+        return authorization
+    
+    authorization = property(_makeDigest)
+    
+    def _incrementNc(self):
+        _DigestAuthenticationInfo.__nc = self._dec2nc(self._nc2dec() + 1)
+    
+    def _nc2dec(self):
+        return int(_DigestAuthenticationInfo.__nc, 16)
+    
+    def _dec2nc(self, decimal):
+        return hex(decimal)[2:].zfill(8)
+    
 
 class WebdavError(IOError):
     def __init__(self, reason, code=0):
@@ -222,11 +280,21 @@ class WebdavError(IOError):
     def __str__(self):
         return self.reason
 
+
+class AuthorizationError(WebdavError):
+    def __init__(self, reason, code, authHeader):
+        WebdavError.__init__(self, reason, code)
+        
+        self.authType = authHeader.split(" ")[0]
+        self.authInfo = authHeader
+
+
 def _toUtf8(body):
     if not body is None:
         if type(body) == types.UnicodeType:
             body = body.encode('utf-8')
     return body
+
 
 def _urlEncode(url):
     if type(url) == types.UnicodeType:

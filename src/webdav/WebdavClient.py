@@ -23,19 +23,19 @@ This module contains the classes ResourceStorer and CollectionStorer for accessi
 from davlib import XML_CONTENT_TYPE
 
 from urlparse import urlsplit
+import re
 import types
 
 from webdav import Constants
 from webdav.WebdavResponse import LiveProperties
 from webdav.WebdavRequests import createFindBody, createUpdateBody, createDeleteBody, createSearchBody
 from webdav.Condition import ConditionTerm
-from webdav.Connection import Connection, WebdavError
+from webdav.Connection import Connection, WebdavError, AuthorizationError
 from webdav.VersionHandler import VersionHandler
 
 from webdav.acp.Privilege import Privilege
 from webdav.acp.Acl import ACL
 from webdav.NameCheck import validateResourceName, WrongNameError
-
 
 
 __version__ = '$Revision$'[11:-2]
@@ -48,8 +48,25 @@ def switchUnicodeUrlOn(switch):
     
     @param switch: 1 if unicode URLs shall be used
     """
+
     assert switch == 0 or switch == 1, "Pass boolean argument, please."
     Constants.CONFIG_UNICODE_URL = switch
+
+
+def parseDigestAuthInfo(authInfo):
+    """ 
+    Parses the authentication information returned from a server and returns
+    a dictionary containing realm, qop, and nonce.
+    
+    @see: L{AuthorizationError<webdav.Connection.AuthorizationError>} 
+    or the main function of this module.
+    """
+    
+    info = dict()
+    info["realm"] = re.search('realm="([^"]+)"', authInfo).group(1)
+    info["qop"] = re.search('qop="([^"]+)"', authInfo).group(1)
+    info["nonce"] = re.search('nonce="([^"]+)"', authInfo).group(1)
+    return info
 
 
 class ResourceStorer(object):
@@ -807,22 +824,40 @@ def _checkUrl(url):
     if len(parts[0]) == 0 or len(parts[1]) == 0 or len(parts[2]) == 0:
         raise ValueError("Invalid URL: " + repr(url))
 
+
 # small test
-# asks for WebDAV colection, username, password and lists the content of the collection.
+# asks for WebDAV collection and optionally user name and password) and lists the content of the collection.
 if __name__ == "__main__":
     import sys
  
     webdavUrl = raw_input("WebDAV Collection (URL):").strip()
-    username = raw_input("Username:").strip()
-    password = raw_input("Password:").strip()
-    
+    username = None
+    password = None
     webdavConnection = CollectionStorer(webdavUrl, validateResourceNames=False)
-    webdavConnection.connection.addBasicAuthorization(username, password)
-    print "Contents of resource %s:" % webdavConnection.path
-    for resource, properties in webdavConnection.getCollectionContents():
-        try: 
-            print(resource.path.encode(sys.getfilesystemencoding()))
-            print(unicode(properties).encode(sys.getfilesystemencoding()))
-        except UnicodeEncodeError:
-            print("Cannot encode resource path or properties.")    
+    
+    authFailures = 0
+    while authFailures < 2:
+        try:
+            for resource, properties in webdavConnection.getCollectionContents():
+                try: 
+                    print resource.path.encode(sys.getfilesystemencoding())
+                    print unicode(properties).encode(sys.getfilesystemencoding())
+                except UnicodeEncodeError:
+                    print("Cannot encode resource path or properties.")
+            
+            break # break out of the authorization failure counter
+        except AuthorizationError as e:
+            if username is None or password is None:
+                username = raw_input("User Name:").strip()
+                password = raw_input("Password:").strip()
+    
+            if e.authType == "Basic":
+                webdavConnection.connection.addBasicAuthorization(username, password)
+            elif e.authType == "Digest":
+                info = parseDigestAuthInfo(e.authInfo)
+                webdavConnection.connection.addDigestAuthorization(username, password, realm=info["realm"], qop=info["qop"], nonce=info["nonce"])
+            else:
+                raise
+                        
+            authFailures += 1
         print("\n")
