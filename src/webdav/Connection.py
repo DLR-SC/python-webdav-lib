@@ -172,6 +172,9 @@ class Connection(DAV):
             if contentEnc:
                 header['Content-Encoding'] = contentEnc
             if self.__authorizationInfo:
+                # update (digest) authorization data
+                if hasattr(self.__authorizationInfo, "update"):
+                    self.__authorizationInfo.update(method="PUT", uri=path)
                 header["AUTHORIZATION"] = self.__authorizationInfo.authorization
                 
             # send first request
