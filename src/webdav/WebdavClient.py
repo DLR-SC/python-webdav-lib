@@ -325,6 +325,11 @@ class ResourceStorer(object):
         if lockToken:
             header = lockToken.toHeader()
         response = None
+        if not content is None:
+            header["Content-length"] = len(content)
+        else:
+            header["Content-length"] = 0
+
         try: 
             response = self.connection.put(self.path, content, extra_hdrs=header)
         finally:
@@ -613,7 +618,7 @@ class CollectionStorer(ResourceStorer):
         assert lockToken == None or isinstance(lockToken, LockToken), \
                 "Invalid lockToken argument %s" % type(lockToken)
         if self.validateResourceNames:
-            validateResourceName(name) ## check for invalid characters        
+            validateResourceName(name) # check for invalid characters        
         resource_ = ResourceStorer(self.url + name, self.connection, self.validateResourceNames)
         resource_.uploadContent(content, lockToken)
         if properties:
@@ -858,6 +863,5 @@ if __name__ == "__main__":
                 webdavConnection.connection.addDigestAuthorization(username, password, realm=info["realm"], qop=info["qop"], nonce=info["nonce"])
             else:
                 raise
-                        
             authFailures += 1
         print("\n")
