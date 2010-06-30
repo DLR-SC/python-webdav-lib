@@ -13,7 +13,7 @@
 # limitations under the License.""" Setup script for the DataFinder project. """
 
 
-""" Setup script to deply the WebDAV client library. """
+""" Setup script to deploy the WebDAV client library. """
 
 
 import shutil
@@ -41,20 +41,46 @@ _authorEmail = _configParser.get(_globalConfigurationCategory, "authorEmail")
 _maintainer = _configParser.get(_globalConfigurationCategory, "maintainer")
 _maintainerEmail = _configParser.get("global", "maintainerEmail")
 _url = _configParser.get(_globalConfigurationCategory, "url")
+_licenseFileName = _configParser.get(_globalConfigurationCategory, "license_file_name")
+_changesFileName = _configParser.get(_globalConfigurationCategory, "changes_file_name")
 
-if os.path.exists("./lib"):
-    shutil.copy("./lib/qp_xml.py", "./src")
-    shutil.copy("./lib/davlib.py", "./src")
 
-setup(name=_name,
-      version=_version,
-      description = _description,
-      long_description = _longDescription,
-      author = _author,
-      author_email = _authorEmail,
-      maintainer = _maintainer,
-      maintainer_email = _maintainerEmail,
-      url = _url,
-      py_modules = ["qp_xml", "davlib"],
-      package_dir={"":"src"},
-      packages = ["webdav", "webdav.acp"])
+def _createManifestTemplate(licenseFileName, changesFileName):
+    """ Handles the creation of the manifest template file. """
+    
+    manifestTemplateFileName = "MANIFEST.in"
+    if not os.path.exists(manifestTemplateFileName):
+        try:
+            fileHandle = open(manifestTemplateFileName, "wb")
+            fileHandle.write("include %s\n" % licenseFileName)
+            fileHandle.write("include %s" % changesFileName)
+            fileHandle.close()
+        except IOError:
+            print("Cannot create manifest template file.")
+            sys.exit(-1)
+
+
+def performSetup():
+    """ Main method of the setup script. """
+    
+    if os.path.exists("./lib"):
+        shutil.copy("./lib/qp_xml.py", "./src")
+        shutil.copy("./lib/davlib.py", "./src")
+    
+    _createManifestTemplate(_licenseFileName, _changesFileName)
+    
+    setup(name=_name,
+          version=_version,
+          description = _description,
+          long_description = _longDescription,
+          author = _author,
+          author_email = _authorEmail,
+          maintainer = _maintainer,
+          maintainer_email = _maintainerEmail,
+          url = _url,
+          py_modules = ["qp_xml", "davlib"],
+          package_dir={"":"src"},
+          packages = ["webdav", "webdav.acp"])
+
+
+performSetup()

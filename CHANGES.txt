@@ -1,0 +1,25 @@
+0.2.0
+====
+* Feature release
+* Extended HTTP digest authentication support (see default usage scenario)
+* Fixed redefinition of the "lock" method
+* Fixed adding of resource to collection due to missing HTTP Content-length header.
+
+0.1.2
+=====
+* Bug fix release
+* Fixes some problems concerning file uploads
+
+0.1.1
+=====
+* Bug fix release
+* Fixes some issues concerning unicode handling in resource paths
+
+0.1.0
+=====
+* Initial Release 
+* WebDAV core features implemented 
+* DAV Searching and Locating implemented
+* Access Control Protocol implemented (some of the report functionalities are currently missing)
+* Basic Versioning (experimental) 
+* Support of HTTP and HTTPs connections 
