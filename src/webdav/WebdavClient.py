@@ -851,7 +851,7 @@ if __name__ == "__main__":
                     print("Cannot encode resource path or properties.")
             
             break # break out of the authorization failure counter
-        except AuthorizationError as e:
+        except AuthorizationError, e:
             if username is None or password is None:
                 username = raw_input("User Name:").strip()
                 password = raw_input("Password:").strip()
