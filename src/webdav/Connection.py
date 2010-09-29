@@ -173,7 +173,7 @@ class Connection(DAV):
             try:
                 size = os.path.getsize(srcfile.name)    
             except os.error, error:
-                raise WebdavError("Cannot determine file size.\nReason: ''" % error.message)
+                raise WebdavError("Cannot determine file size.\nReason: ''" % str(error.args))
             header["Content-length"] = str(size)
             
             contentType, contentEnc = mimetypes.guess_type(path)
