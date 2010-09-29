@@ -23,15 +23,21 @@ The contained class extends the HTTPConnection class for WebDAV support.
 from httplib import HTTPConnection, CannotSendRequest, BadStatusLine, ResponseNotReady
 from copy import copy
 import base64   # for basic authentication
-import hashlib
+try:
+    import hashlib
+except ImportError: # for Python 2.4 compatibility
+    import md5
+    hashlib = md5
 import mimetypes
 import os       # file handling
 import urllib
 import types
 import socket   # to "catch" socket.error
 from threading import RLock
-from uuid import uuid4
-
+try:
+    from uuid import uuid4
+except ImportError: # for Python 2.4 compatibility
+    from uuid_ import uuid4
 from davlib import DAV
 from qp_xml import Parser
 

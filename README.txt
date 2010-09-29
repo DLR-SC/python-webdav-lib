@@ -5,7 +5,7 @@ Searching.
 See https://launchpad.net/python-webdav-lib for details.
 
 Requirements:
-Python 2.5 or higher
+Python 2.4 or higher
 
 Installation:
 Extract archive
