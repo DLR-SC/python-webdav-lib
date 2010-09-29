@@ -13,10 +13,21 @@
 # limitations under the License.
 
 
+from webdav import Constants 
 from webdav.acp.Acl import ACL
 from webdav.acp.Ace import ACE
 from webdav.acp.GrantDeny import GrantDeny
 from webdav.acp.Privilege import Privilege
 from webdav.acp.Principal import Principal
 
+
 __version__ = "$LastChangedRevision$"
+
+
+privileges = [Constants.TAG_READ, Constants.TAG_WRITE, Constants.TAG_WRITE_PROPERTIES, 
+              Constants.TAG_WRITE_CONTENT, Constants.TAG_UNLOCK, Constants.TAG_READ_ACL, 
+              Constants.TAG_READ_CURRENT_USER_PRIVILEGE_SET, Constants.TAG_WRITE_ACL, Constants.TAG_ALL, 
+              Constants.TAG_BIND, Constants.TAG_UNBIND, Constants.TAG_TAMINO_SECURITY,
+              Constants.TAG_BIND_COLLECTION, Constants.TAG_UNBIND_COLLECTION, Constants.TAG_READ_PRIVATE_PROPERTIES,
+              Constants.TAG_WRITE_PRIVATE_PROPERTIES]
+Privilege.registerPrivileges(privileges)

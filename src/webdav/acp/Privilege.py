@@ -32,23 +32,18 @@ class Privilege(object):
     @ivar name: Name of the privilege.
     @type name: C{string}
     
-    @cvar _TAG_LIST_PRIVILEGES: List of allowed XML tags for privileges.
-    @type _TAG_LIST_PRIVILEGES: C{tuple} of C{string}s
-    @cvar _TAG_LIST_PRIVILEGES_TAMINO: List of special Tamino XML tags for privileges.
-    @type _TAG_LIST_PRIVILEGES: C{tuple} of C{string}s
+    @cvar __privileges: List of allowed XML tags for privileges.
+    @type __privileges: C{tuple} of C{string}s
     """
-    _TAG_LIST_PRIVILEGES = (Constants.TAG_READ, Constants.TAG_WRITE, Constants.TAG_WRITE_PROPERTIES, 
-                            Constants.TAG_WRITE_CONTENT, Constants.TAG_UNLOCK, Constants.TAG_READ_ACL, 
-                            Constants.TAG_READ_CURRENT_USER_PRIVILEGE_SET, 
-                            Constants.TAG_WRITE_ACL, Constants.TAG_ALL, 
-                            Constants.TAG_BIND, Constants.TAG_UNBIND)
-    _TAG_LIST_PRIVILEGES_TAMINO = (Constants.TAG_TAMINO_SECURITY)
 
-  
+
+    __privileges = list()
+        
+    
     def __init__(self, privilege=None, domroot=None):
         """
         Constructor should be called with either no parameters (create blank Privilege),
-        one parameter (a DOM tree or privilege name to inicialize it directly).
+        one parameter (a DOM tree or privilege name to initialize it directly).
         
         @param domroot: A DOM tree (default: None).
         @type  domroot: L{webdav.WebdavResponse.Element} object
@@ -58,6 +53,7 @@ class Privilege(object):
         @raise WebdavError: When non-valid parameters or sets of parameters are 
                             passed a L{WebdavError} is raised.
         """
+        
         self.name = None
         
         if domroot:
@@ -66,18 +62,29 @@ class Privilege(object):
                     % (len(domroot.children)))
             else:
                 child = domroot.children[0]
-                if child.ns == Constants.NS_DAV and child.name in self._TAG_LIST_PRIVILEGES or \
-                   child.ns == Constants.NS_TAMINO and child.name in self._TAG_LIST_PRIVILEGES_TAMINO:
+                if child.ns == Constants.NS_DAV and child.name in self.__privileges:
                     self.name = child.name
                 else:
                     raise WebdavError('Not a valid privilege tag, we have: %s%s' \
                         % (child.ns, child.name))
         elif privilege:
-            if privilege in self._TAG_LIST_PRIVILEGES:
+            if privilege in self.__privileges:
                 self.name = privilege
             else:
                 raise WebdavError('Not a valid privilege tag, we have: %s.' % str(privilege))
 
+    @classmethod
+    def registerPrivileges(cls, privileges):
+        """
+        Registers supported privilege tags.
+        
+        @param privileges: List of privilege tags.
+        @type privileges: C{list} of C{unicode}
+        """
+        
+        for privilege in privileges:
+            cls.__privileges.append(privilege)
+    
     def __cmp__(self, other):
         """ Compares two Privilege instances. """
         if not isinstance(other, Privilege):

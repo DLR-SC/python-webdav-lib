@@ -144,13 +144,13 @@ TAG_WRITE_ACL = 'write-acl'
 TAG_ALL = 'all'
 TAG_BIND = 'bind'
 TAG_UNBIND = 'unbind'
-
-# tamino specific security option
-TAG_TAMINO_SECURITY = 'security'
-
-# maybe this shouldn't be hard coded in here, but for now we'll just have to
-# live with it this way ...
-TAMINO_PRIVILEGES     = (TAG_READ, TAG_WRITE, TAG_READ_ACL, TAG_WRITE_ACL)
+# Tamino-specific privileges
+TAG_TAMINO_SECURITY = 'security' 
+# Limestone-specific privileges
+TAG_BIND_COLLECTION = 'bind-collection'
+TAG_UNBIND_COLLECTION = 'unbind-collection'
+TAG_READ_PRIVATE_PROPERTIES = 'read-private-properties'
+TAG_WRITE_PRIVATE_PROPERTIES = 'write-private-properties'
 
 # properties for WebDAV ACP:
 PROP_CURRENT_USER_PRIVILEGE_SET = 'current-user-privilege-set'

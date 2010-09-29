@@ -162,9 +162,8 @@ class GrantDeny(object):
         @return: Value whether all un-aggregated privileges are present.
         @rtype:  C{bool}
         """
-        if len(self.privileges) == len(Constants.TAMINO_PRIVILEGES):
-            return 1
-        elif len(self.privileges) == 1 and self.privileges[0].name == Constants.TAG_ALL:
+        
+        if len(self.privileges) == 1 and self.privileges[0].name == Constants.TAG_ALL:
             return 1
         return 0
 
