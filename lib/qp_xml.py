@@ -17,11 +17,8 @@
 #
 
 import string
+from xml.parsers import expat
 
-try:
-  import pyexpat
-except ImportError:
-  from xml.parsers import pyexpat
 
 error = __name__ + '.error'
 
@@ -120,7 +117,7 @@ class Parser:
   def parse(self, input):
     self.reset()
 
-    p = pyexpat.ParserCreate()
+    p = expat.ParserCreate()
     p.StartElementHandler = self.start
     p.EndElementHandler = self.end
     p.CharacterDataHandler = self.cdata

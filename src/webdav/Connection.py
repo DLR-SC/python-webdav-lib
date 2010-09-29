@@ -38,6 +38,8 @@ try:
     from uuid import uuid4
 except ImportError: # for Python 2.4 compatibility
     from uuid_ import uuid4
+from xml.parsers.expat import ExpatError
+
 from davlib import DAV
 from qp_xml import Parser
 
@@ -141,8 +143,12 @@ class Connection(DAV):
         
         if status == Constants.CODE_MULTISTATUS:
             content = response.read()
-            ## check for UTF-8 encodig
-            response.root = Parser().parse(content)
+            ## check for UTF-8 encoding
+            try:
+                response.root = Parser().parse(content)
+            except ExpatError, error:
+                errorMessage = "Invalid XML document has been returned.\nReason: '%s'" % str(error.args)
+                raise WebdavError(errorMessage)
             try:
                 response.msr = MultiStatusResponse(response.root)
             except ResponseFormatError:
