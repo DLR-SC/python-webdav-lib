@@ -1,3 +1,10 @@
+0.3.0
+=====
+* Feature release
+* New privilege tags can be added using the class method "webdav.acp.Privilege.Privilege.registerPrivileges".
+* Invalid XML server responses are signaled using a WebdavError instead of an ExpatError to simplify error handling in client applications.
+* Enhanced compatibility: Usage of Python 2.4 and Jython >= 2.5.1 is now supported, too.
+
 0.2.0
 ====
 * Feature release
