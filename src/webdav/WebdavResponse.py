@@ -26,6 +26,13 @@ from webdav import Constants
 import time
 import rfc822
 import urllib
+# Handling Jython 2.5 bug concerning the date pattern
+# conversion in time.strptime
+try:
+    from java.lang import IllegalArgumentException
+except ImportError:
+    class IllegalArgumentException(object):
+        pass
 
 
 __version__ = "$LastChangedRevision$"
@@ -425,8 +432,12 @@ def _parseIso8601String(date):
     if "." in date and "Z" in date: # Contains fragments of second?
         secondFragmentPos = date.rfind(".")
         timeOffsetPos = date.rfind("Z")
-        date = date[:secondFragmentPos] + date[timeOffsetPos:] 
-    timeTuple = time.strptime(date, Constants.DATE_FORMAT_ISO8601)
+        date = date[:secondFragmentPos] + date[timeOffsetPos:]
+    try:
+        timeTuple = time.strptime(date, Constants.DATE_FORMAT_ISO8601)
+    except IllegalArgumentException: # Handling Jython 2.5 bug concerning the date pattern accordingly
+        import _strptime # Using the Jython fall back solution directly
+        timeTuple = _strptime.strptime(date, Constants.DATE_FORMAT_ISO8601)
     return timeTuple
 
 
