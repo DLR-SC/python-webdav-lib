@@ -66,6 +66,7 @@ def performSetup():
     if os.path.exists("./lib"):
         shutil.copy("./lib/qp_xml.py", "./src")
         shutil.copy("./lib/davlib.py", "./src")
+        shutil.copy("./lib/uuid_.py", "./src")
     
     _createManifestTemplate(_licenseFileName, _changesFileName)
     
@@ -78,7 +79,7 @@ def performSetup():
           maintainer = _maintainer,
           maintainer_email = _maintainerEmail,
           url = _url,
-          py_modules = ["qp_xml", "davlib"],
+          py_modules = ["qp_xml", "davlib", "uuid_"],
           package_dir={"":"src"},
           packages = ["webdav", "webdav.acp"])
 
