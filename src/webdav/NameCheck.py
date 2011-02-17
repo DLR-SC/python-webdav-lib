@@ -50,6 +50,7 @@ _dollar  = "\$"
 _plus = "+"
 _equal = "="
 _sharp = "#"
+_percent = "%"
 
 # Define character groups
 _letterNum = _alphaNum + _german
@@ -59,7 +60,7 @@ _letter = _alpha + _german
 firstPropertyChar = _letter + _under
 propertyChar = firstPropertyChar + _num + _dash + _dot
 firstResourceChar = firstPropertyChar + _num + _tilde + _exclam + _dollar + \
-                     _dot + _dash + _plus + _equal + _sharp
+                     _dot + _dash + _plus + _equal + _sharp + _percent
 resourceChar = firstResourceChar + _space
 
 # Define regular expressions for name validation
