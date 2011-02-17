@@ -20,7 +20,7 @@ The contained class extends the HTTPConnection class for WebDAV support.
 """
 
 
-from httplib import HTTPConnection, CannotSendRequest, BadStatusLine, ResponseNotReady
+from httplib import HTTPConnection, CannotSendRequest, BadStatusLine, ResponseNotReady, IncompleteRead
 from copy import copy
 import base64   # for basic authentication
 try:
@@ -111,13 +111,13 @@ class Connection(DAV):
                     self.request(method, url, body, extraHeaders)
                     response = self.getresponse()
                     break  # no retry needed
-                except (CannotSendRequest, socket.error, BadStatusLine, ResponseNotReady), exc:
+                except (CannotSendRequest, socket.error, BadStatusLine, ResponseNotReady, IncompleteRead), exc:
                     # Workaround, start: reconnect and retry...
                     self.logger.debug("Exception: " + str(exc) + " Retry ... ")
                     self.close()
                     try:
                         self.connect()
-                    except (CannotSendRequest, socket.error, BadStatusLine, ResponseNotReady), exc:
+                    except (CannotSendRequest, socket.error, BadStatusLine, ResponseNotReady, IncompleteRead), exc:
                         raise WebdavError("Cannot perform request. Connection failed.")
                     if retry == Connection.MaxRetries - 1:
                         raise WebdavError("Cannot perform request.")
