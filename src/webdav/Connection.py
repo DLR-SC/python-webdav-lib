@@ -132,7 +132,7 @@ class Connection(DAV):
         self.logger.debug("Method: " + method + " Status %d: " % status + reason)
         
         if status >= Constants.CODE_LOWEST_ERROR:     # error has occured ?
-            self.logger.debug("ERROR Response: " + response.read())
+            self.logger.debug("ERROR Response: " + response.read().strip())
             
             # identify authentication CODE_UNAUTHORIZED, throw appropriate exception
             if status == Constants.CODE_UNAUTHORIZED:
@@ -154,12 +154,12 @@ class Connection(DAV):
             except ResponseFormatError:
                 raise WebdavError("Invalid WebDAV response.")
             response.close()
-            self.logger.debug("RESPONSE (Multi-Status): " + unicode(response.msr))
+            self.logger.debug("RESPONSE (Multi-Status): " + unicode(response.msr).strip())
         elif method == 'LOCK' and status == Constants.CODE_SUCCEEDED:
             response.parse_lock_response()
             response.close()
         elif method != 'GET' and method != 'PUT':
-            self.logger.debug("RESPONSE Body: " + response.read())
+            self.logger.debug("RESPONSE Body: " + response.read().strip())
             response.close()
         return response
         

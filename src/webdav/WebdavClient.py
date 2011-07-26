@@ -309,7 +309,7 @@ class ResourceStorer(object):
             header = lockToken.toHeader()
         self.connection.put(self.path, "", extra_hdrs=header)
 
-    def uploadContent(self, content, lockToken=None):
+    def uploadContent(self, content, lockToken=None, extra_hdrs={}):
         """
         Write binary data to permanent storage.
         
@@ -329,7 +329,7 @@ class ResourceStorer(object):
             header["Content-length"] = len(content)
         else:
             header["Content-length"] = 0
-
+        header.update(extra_hdrs)
         try: 
             response = self.connection.put(self.path, content, extra_hdrs=header)
         finally:
@@ -353,11 +353,11 @@ class ResourceStorer(object):
             header = lockToken.toHeader()
         self.connection.putFile(self.path, newFile, header=header)
 
-    def downloadContent(self):
+    def downloadContent(self, extra_hdrs={}):
         """
         Read binary data from permanent storage.
         """
-        response = self.connection.get(self.path)
+        response = self.connection.get(self.path, extra_hdrs=extra_hdrs)
         # TODO: Other interface ? return self.connection.getfile()
         return response
 
@@ -373,19 +373,22 @@ class ResourceStorer(object):
         remoteFile.close()
         localFile.close()
 
-    def readProperties(self, *names):
+    def readProperties(self, *names, **kwargs):
         """
         Reads the given properties.
         
         @param names: a list of property names.
                       A property name is a (XmlNameSpace, propertyName) tuple.
+        @param ignore404: a boolean flag.
+                      Indicates if an error should be raised for missing properties.
         @return: a map from property names to DOM Element or String values.
         """
         assert names, "Property names are missing."
+        ignore404 = kwargs.pop('ignore404', False)
         body = createFindBody(names, self.defaultNamespace)
         response = self.connection.propfind(self.path, body, depth=0)
         properties = response.msr.values()[0]
-        if  properties.errorCount > 0:
+        if  not ignore404 and properties.errorCount > 0 :
             raise WebdavError("Property is missing on '%s': %s" % (self.path, properties.reason), properties.code)
         return properties
 
