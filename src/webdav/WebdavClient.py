@@ -326,9 +326,9 @@ class ResourceStorer(object):
             header = lockToken.toHeader()
         response = None
         if not content is None:
-            header["Content-length"] = len(content)
+            header["Content-length"] = str(len(content))
         else:
-            header["Content-length"] = 0
+            header["Content-length"] = "0"
         header.update(extra_hdrs)
         try: 
             response = self.connection.put(self.path, content, extra_hdrs=header)
