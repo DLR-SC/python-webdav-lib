@@ -1,3 +1,10 @@
+0.3.1
+=====
+* Bug fix release
+* "%" character can now be used in URLs and is no longer considered as illegal character.
+* When uploading data, the size header is correctly provided as string.
+* Correctly mapped IncompleteRead error to a WebdavError. 
+
 0.3.0
 =====
 * Feature release
@@ -29,4 +36,5 @@
 * DAV Searching and Locating implemented
 * Access Control Protocol implemented (some of the report functionalities are currently missing)
 * Basic Versioning (experimental) 
-* Support of HTTP and HTTPs connections 
+* Support of HTTP and HTTPs connections
+ 
