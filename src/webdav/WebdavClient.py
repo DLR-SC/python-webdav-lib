@@ -833,26 +833,41 @@ def _checkUrl(url):
         raise ValueError("Invalid URL: " + repr(url))
 
 
-# small test
-# asks for WebDAV collection and optionally user name and password) and lists the content of the collection.
+# small test:
+# asks for WebDAV collection or file (if not passed) 
+# and lists the content of the collection or downloads the file; 
+# requests user name and password where required by server
 if __name__ == "__main__":
     import sys
  
-    webdavUrl = raw_input("WebDAV Collection (URL):").strip()
+    if len(sys.argv) == 1:
+        webdavUrl = raw_input("WebDAV URL:").strip()
+    elif len(sys.argv) == 2 and sys.argv[1] not in ["-h", "-?", "--help", "--usage"]:
+        webdavUrl = sys.argv[1]
+    else:
+        print(
+            "usage: %s [URL]\n"
+            "If no URL is passed, URL is prompted for.\n"
+            "If URL ends in slash, directory is listed.\n" 
+            "If URL does not end in slash, file is downloaded.\n" % sys.argv[0])
+        sys.exit(1)
     username = None
     password = None
     webdavConnection = CollectionStorer(webdavUrl, validateResourceNames=False)
-    
+
     authFailures = 0
     while authFailures < 2:
         try:
-            for resource, properties in webdavConnection.getCollectionContents():
-                try: 
-                    print resource.path.encode(sys.getfilesystemencoding())
-                    print unicode(properties).encode(sys.getfilesystemencoding())
-                except UnicodeEncodeError:
-                    print("Cannot encode resource path or properties.")
-            
+            if webdavUrl[-1] != "/":
+                webdavConnection.downloadFile(webdavUrl.split("/")[-1])
+            else: # list collection contents
+                for resource, properties in webdavConnection.getCollectionContents():
+                    try:
+                        print("")
+                        print(resource.path.encode(sys.getfilesystemencoding()))
+                        print(unicode(properties).encode(sys.getfilesystemencoding()))
+                    except UnicodeEncodeError:
+                        print("Cannot encode resource path or properties.")
             break # break out of the authorization failure counter
         except AuthorizationError, e:
             if username is None or password is None:
@@ -863,7 +878,8 @@ if __name__ == "__main__":
                 webdavConnection.connection.addBasicAuthorization(username, password)
             elif e.authType == "Digest":
                 info = parseDigestAuthInfo(e.authInfo)
-                webdavConnection.connection.addDigestAuthorization(username, password, realm=info["realm"], qop=info["qop"], nonce=info["nonce"])
+                webdavConnection.connection.addDigestAuthorization(
+                    username, password, realm=info["realm"], qop=info["qop"], nonce=info["nonce"])
             else:
                 raise
             authFailures += 1
