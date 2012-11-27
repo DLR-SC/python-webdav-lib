@@ -111,13 +111,14 @@ class Connection(DAV):
                     self.request(method, url, body, extraHeaders)
                     response = self.getresponse()
                     break  # no retry needed
-                except (CannotSendRequest, socket.error, BadStatusLine, ResponseNotReady, IncompleteRead), exc:
+                except (CannotSendRequest, socket.error, BadStatusLine, ResponseNotReady, IncompleteRead):
                     # Workaround, start: reconnect and retry...
-                    self.logger.debug("Exception: " + str(exc) + " Retry ... ")
+                    self.logger.debug("Exception occurred! Retry ... ", exc_info=True)
                     self.close()
                     try:
                         self.connect()
-                    except (CannotSendRequest, socket.error, BadStatusLine, ResponseNotReady, IncompleteRead), exc:
+                    except (CannotSendRequest, socket.error, BadStatusLine, ResponseNotReady, IncompleteRead):
+                        self.logger.debug("Connection failed.", exc_info=True)
                         raise WebdavError("Cannot perform request. Connection failed.")
                     if retry == Connection.MaxRetries - 1:
                         raise WebdavError("Cannot perform request.")
@@ -154,7 +155,8 @@ class Connection(DAV):
             except ResponseFormatError:
                 raise WebdavError("Invalid WebDAV response.")
             response.close()
-            self.logger.debug("RESPONSE (Multi-Status): " + unicode(response.msr).strip())
+            for status in unicode(response.msr).strip().split('\n'):
+                self.logger.debug("RESPONSE (Multi-Status): " + status)
         elif method == 'LOCK' and status == Constants.CODE_SUCCEEDED:
             response.parse_lock_response()
             response.close()
@@ -200,8 +202,8 @@ class Connection(DAV):
                 self._blockCopySocket(srcfile, self, Connection.blockSize)
                 srcfile.close()
                 response = self.getresponse()
-            except (CannotSendRequest, socket.error, BadStatusLine, ResponseNotReady), exc:
-                self.logger.debug("Exception: " + str(exc) + " Retry ... ")
+            except (CannotSendRequest, socket.error, BadStatusLine, ResponseNotReady):
+                self.logger.debug("Exception occurred! Retry...", exc_info=True)
                 raise WebdavError("Cannot perform request.")
             status, reason = (response.status, response.reason)
             self.logger.debug("Status %d: %s" % (status, reason))
@@ -216,15 +218,14 @@ class Connection(DAV):
             self._lock.release()
                   
     def _blockCopySocket(self, source, toSocket, blockSize):
-        transferedBytes = 0
+        transferredBytes = 0
         block = source.read(blockSize)
-        #while source.readinto(block, blockSize):
         while len(block):
             toSocket.send(block)
             self.logger.debug("Wrote %d bytes." % len(block))
-            transferedBytes += len(block)
+            transferredBytes += len(block)
             block = source.read(blockSize)        
-        self.logger.info("Transfered %d bytes." % transferedBytes)
+        self.logger.info("Transferred %d bytes." % transferredBytes)
 
     def __str__(self):
         return self.protocol + "://" + self.host + ':' + str(self.port)
