@@ -22,7 +22,8 @@ Handles WebDAV responses.
 
 from davlib import _parse_status
 import qp_xml
-from webdav import Constants
+from webdav import Constants, logger
+import sys
 import time
 import rfc822
 import urllib
@@ -102,13 +103,14 @@ class MultiStatusResponse(dict):
         return result                    
     
     def __str__(self):
-        result = ""
+        result = u""
         for key, value in self.items():
-            if  isinstance(value, PropertyResponse):
-                result += "Resource at %s has %d properties and %d errors.\n" % (key, len(value), value.errorCount)
+            if isinstance(value, PropertyResponse):
+                result += "Resource at %s has %d properties (%s) and %d errors\n" % (
+                    key, len(value), ", ".join([prop[1] for prop in value.keys()]), value.errorCount)
             else:
-                result += "Resource at %s returned " % key + str(value)
-        return result
+                result += "Resource at %s returned " % key + unicode(value)
+        return result.encode(sys.stdout.encoding or "ascii", "replace")
     
     def _scan(self, root):
         for child in root.children:
@@ -252,7 +254,8 @@ class LiveProperties(object):
              Constants.PROP_CONTENT_LENGTH, Constants.PROP_CONTENT_TYPE, Constants.PROP_ETAG,
              Constants.PROP_LAST_MODIFIED, Constants.PROP_OWNER,
              Constants.PROP_LOCK_DISCOVERY, Constants.PROP_RESOURCE_TYPE, Constants.PROP_SUPPORTED_LOCK )
-     
+    _logger = logger.getDefaultLogger()
+    
     def __init__(self, properties=None, propElement=None):
         """
         Construct <code>StandardProperties</code> from a map of properties containing
@@ -276,7 +279,7 @@ class LiveProperties(object):
         @return: string
         """
         
-        result = ""
+        result = None
         if not self.properties.get(Constants.PROP_CONTENT_LANGUAGE, None) is None:
             result = self.properties.get(Constants.PROP_CONTENT_LANGUAGE).textof()
         return result
@@ -288,7 +291,7 @@ class LiveProperties(object):
         @return: number of bytes
         """
         
-        result = 0
+        result = None
         if not self.properties.get(Constants.PROP_CONTENT_LENGTH, None) is None:
             result = int(self.properties.get(Constants.PROP_CONTENT_LENGTH).textof())
         return result
@@ -300,7 +303,7 @@ class LiveProperties(object):
         @return: MIME type string
         """
         
-        result = ""
+        result = None
         if not self.properties.get(Constants.PROP_CONTENT_TYPE, None) is None:
             result = self.properties.get(Constants.PROP_CONTENT_TYPE).textof()
         return result
@@ -310,16 +313,22 @@ class LiveProperties(object):
         Return date of creation as time tuple.
                 
         @return: time tuple
-        @rtype: C{time.struct_time}
-        
-        @raise ValueError: If string is not in the expected format (ISO 8601).
+        @rtype: C{time.struct_time} or C{None} if the modification date is not available.
         """
         
-        datetimeString = ""
+        datetimeString = None
         if not self.properties.get(Constants.PROP_CREATION_DATE, None) is None:
             datetimeString = self.properties.get(Constants.PROP_CREATION_DATE).textof()
-        return _parseIso8601String(datetimeString)
-    
+        
+        if datetimeString is None:
+            return None
+        else:
+            try:
+                return _parseIso8601String(datetimeString)
+            except ValueError:
+                self._logger.debug(
+                    "Invalid date format: The server must provide an ISO8601 formatted date string.", exc_info=True)
+            
     def getEntityTag(self):
         """
         Return a entity tag which is unique for a particular version of a resource.
@@ -328,7 +337,7 @@ class LiveProperties(object):
         @return: entity tag string
         """
         
-        result = ""
+        result = None
         if not self.properties.get(Constants.PROP_ETAG, None) is None:
             result = self.properties.get(Constants.PROP_ETAG).textof()
         return result
@@ -340,7 +349,7 @@ class LiveProperties(object):
         @return: string
         """
         
-        result = ""
+        result = None
         if not self.properties.get(Constants.PROP_DISPLAY_NAME, None) is None:
             result = self.properties.get(Constants.PROP_DISPLAY_NAME).textof()
         return result
@@ -350,19 +359,26 @@ class LiveProperties(object):
         Return last modification of resource as time tuple.
         
         @return: Modification date time.
-        @rtype:  C{time.struct_time}
-        
-        @raise ValueError: If the date time string is not in the expected format (RFC 822 / ISO 8601).
+        @rtype:  C{time.struct_time} or C{None} if the modification date is not available.
         """
         
         datetimeString = None
         if not self.properties.get(Constants.PROP_LAST_MODIFIED, None) is None:
             datetimeString = self.properties.get(Constants.PROP_LAST_MODIFIED).textof()
-        result = rfc822.parsedate(datetimeString)
-        if result is None:
-            result = _parseIso8601String(datetimeString)
-        return time.struct_time(result)
 
+        if datetimeString is None:
+            return None
+        else:
+            try:
+                result = rfc822.parsedate(datetimeString)
+                if result is None:
+                    result = _parseIso8601String(datetimeString)
+                return time.struct_time(result)
+            except ValueError:
+                self._logger.debug(
+                    "Invalid date format: "
+                    "The server must provide a RFC822 or ISO8601 formatted date string.", exc_info=True)
+                
     def getLockDiscovery(self):
         """
         Return all current lock's applied to a resource or null if it is not locked.
@@ -410,13 +426,17 @@ class LiveProperties(object):
 
     def __str__(self):
         result = ""
-        result += " Name=" + self.getDisplayName()
-        result += "\n Type=" + self.getResourceType()
-        result += "\n Length=" + str(self.getContentLength())
-        result += "\n Content Type="+ self.getContentType()
-        result += "\n ETag=" + self.getEntityTag()
-        result += "\n Created=" + time.strftime("%c GMT", self.getCreationDate())
-        result += "\n Modified=" + time.strftime("%c GMT", self.getLastModified())
+        result += " Name=%s" % self.getDisplayName()
+        result += "\n Type=%s" % self.getResourceType()
+        result += "\n Length=%s" % self.getContentLength()
+        result += "\n Content Type=%s" % self.getContentType()
+        result += "\n ETag=%s" % self.getEntityTag()
+        result += "\n Created="
+        if self.getCreationDate():
+            result += time.strftime("%c GMT", self.getCreationDate())
+        result += "\n Modified="
+        if self.getLastModified():
+            result += time.strftime("%c GMT", self.getLastModified())
         return result
 
 
@@ -428,7 +448,6 @@ def _parseIso8601String(date):
         1. Time offset is limited to "Z".
         2. Fragments of seconds are ignored.
     """
-    
     if "." in date and "Z" in date: # Contains fragments of second?
         secondFragmentPos = date.rfind(".")
         timeOffsetPos = date.rfind("Z")
