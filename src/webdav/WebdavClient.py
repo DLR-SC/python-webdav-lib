@@ -404,9 +404,9 @@ class ResourceStorer(object):
         @return: a map from property names to DOM Element or String values.
         """
         results = self.readProperties((nameSpace, name))
-        if  len(results) == 0:
+        if not (nameSpace, name) in results:
             raise WebdavError("Property is missing: " + results.reason)
-        return results.values()[0]
+        return results[(nameSpace, name)]
 
     def readAllProperties(self):
         """
@@ -811,11 +811,11 @@ def _blockCopyFile(source, dest, blockSize):
     @param blockSize: Size of block in bytes.
     @type  blockSize: C{int}
     """
-    transferedBytes = 0
+    transferredBytes = 0
     block = source.read(blockSize)
     while len(block):
         dest.write(block)
-        transferedBytes += len(block);
+        transferredBytes += len(block)
         block = source.read(blockSize)        
 
 def _checkUrl(url):
