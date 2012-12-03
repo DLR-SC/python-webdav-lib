@@ -16,13 +16,84 @@
 """ Setup script to deploy the WebDAV client library. """
 
 
-import shutil
-import os
 from ConfigParser import ConfigParser
-from distutils.core import setup
+from distutils import core
+import os
+import shutil
+import subprocess
+import sys
 
 
 __version__ = "$LastChangedRevision$"
+
+
+class _BaseCommandRunner(core.Command):
+    """ Base class for encapsulating command line commands. """
+    
+    def run(self):
+        self._create_build_dir()
+        command = self._create_command()
+        self._run_command(command)
+        self._perform_post_actions()
+    
+    @staticmethod
+    def _create_build_dir():
+        if not os.path.exists("build"):
+            os.mkdir("build")
+
+    def _create_command(self):
+        pass
+    
+    def _run_command(self, command):
+        if self.verbose:
+            print(command)
+        subprocess.call(command, shell=True)
+    
+    def _perform_post_actions(self):
+        pass
+
+
+class pylint(_BaseCommandRunner):
+    """ Runs the pylint command. """
+
+    description = "Runs the pylint command."
+    user_options = [
+        ("command=", None, "Path and name of the command line tool."),
+        ("out=", None, "Specifies the output type (html, parseable). Default: html")]
+
+    def initialize_options(self):
+        self.command = "pylint"
+        if sys.platform == "win32":
+            self.command += ".bat"
+        self.out = "html"
+        self.output_file_path = "build/pylint.html"
+
+    def finalize_options(self):
+        self.verbose = self.distribution.verbose
+        if self.out == "parseable":
+            self.output_file_path = "build/pylint.txt"
+
+    def _create_command(self):
+        testScripts = list()
+        for fileName in os.listdir("tests"):
+            if fileName.endswith(".py"):
+                testScripts.append(os.path.join("tests", fileName))
+        return (
+            "%s --rcfile=dev/pylintrc --output-format=%s src/webdav %s > %s"
+            % (self.command, self.out, " ".join(testScripts), self.output_file_path))
+
+    def _perform_post_actions(self):
+        if self.out == "parseable" and sys.platform == "win32":
+            try:
+                file_object = open(self.output_file_path, "rb")
+                content = file_object.read().replace("\\", "/")
+            finally:
+                file_object.close()
+            try:
+                file_object = open(self.output_file_path, "wb")
+                file_object.write(content)
+            finally:
+                file_object.close()
 
 
 _configParser = ConfigParser()
@@ -60,6 +131,12 @@ def _createManifestTemplate(licenseFileName, changesFileName):
             sys.exit(-1)
 
 
+def _set_pythonpath():
+    python_path = [os.path.realpath(path) for path in ["src", "tests", "lib"]]
+    python_path = os.pathsep.join(python_path) + os.pathsep + os.environ.get("PYTHONPATH", "")
+    os.environ["PYTHONPATH"] = python_path
+
+
 def performSetup():
     """ Main method of the setup script. """
     
@@ -68,20 +145,22 @@ def performSetup():
         shutil.copy("./lib/davlib.py", "./src")
         shutil.copy("./lib/uuid_.py", "./src")
     
+    _set_pythonpath()
     _createManifestTemplate(_licenseFileName, _changesFileName)
     
-    setup(name=_name,
-          version=_version,
-          description = _description,
-          long_description = _longDescription,
-          author = _author,
-          author_email = _authorEmail,
-          maintainer = _maintainer,
-          maintainer_email = _maintainerEmail,
-          url = _url,
-          py_modules = ["qp_xml", "davlib", "uuid_"],
-          package_dir={"":"src"},
-          packages = ["webdav", "webdav.acp"])
+    core.setup(name=_name,
+        version=_version,
+        description = _description,
+        long_description = _longDescription,
+        author = _author,
+        author_email = _authorEmail,
+        maintainer = _maintainer,
+        maintainer_email = _maintainerEmail,
+        url = _url,
+        py_modules = ["qp_xml", "davlib", "uuid_"],
+        package_dir={"":"src"},
+        packages = ["webdav", "webdav.acp"],
+        cmdclass={"pylint": pylint})
 
 
 performSetup()
