@@ -132,7 +132,7 @@ def _createManifestTemplate(licenseFileName, changesFileName):
 
 
 def _set_pythonpath():
-    python_path = [os.path.realpath(path) for path in ["src", "tests", "lib"]]
+    python_path = [os.path.realpath(path) for path in ["src"]]
     python_path = os.pathsep.join(python_path) + os.pathsep + os.environ.get("PYTHONPATH", "")
     os.environ["PYTHONPATH"] = python_path
 
