@@ -113,7 +113,7 @@ class Connection(DAV):
                     break  # no retry needed
                 except (CannotSendRequest, socket.error, BadStatusLine, ResponseNotReady, IncompleteRead):
                     # Workaround, start: reconnect and retry...
-                    self.logger.debug("Exception occurred! Retry ... ", exc_info=True)
+                    self.logger.debug("Exception occurred! Retry... ", exc_info=True)
                     self.close()
                     try:
                         self.connect()
