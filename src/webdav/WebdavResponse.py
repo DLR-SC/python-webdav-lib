@@ -240,7 +240,7 @@ class PropertyResponse(dict):
 class LiveProperties(object):
     """
     This class provides convenient access to the WebDAV 'live' properties of a resource.
-    WebDav 'live' properties are defined in RFC 2518, Section 13. 
+    WebDav 'live' properties are defined in RFC 4918, Section 15. 
     Each property is converted from string to its natural data type.
     
     @version: $Revision$
@@ -258,71 +258,67 @@ class LiveProperties(object):
     
     def __init__(self, properties=None, propElement=None):
         """
-        Construct <code>StandardProperties</code> from a map of properties containing
-        live properties or from a XML 'prop' element containing live properties
+        Construct C{LiveProperties} from a dictionary of properties containing
+        live properties or from a XML 'prop' element.
         
         @param properties: map as implemented by class L{PropertyResponse}
-        @param propElement: an C{Element} value
+        @param propElement: C{Element} value
         """
+        
         assert isinstance(properties, PropertyResponse) or \
                isinstance(propElement, qp_xml._element), \
                 "Argument properties has type %s" % str(type(properties))
-        self.properties = {}
+        self.properties = dict()
         for name, value in properties.items():
-            if  name[0] == Constants.NS_DAV  and  name[1] in self.NAMES:
+            if name[0] == Constants.NS_DAV and name[1] in self.NAMES:
                 self.properties[name[1]] = value
 
     def getContentLanguage(self):
         """
-        Return the language of a resource's textual content or null
+        Return the language of a resource's textual content or C{None}.
         
-        @return: string
+        @rtype: C{string}
         """
         
-        result = None
-        if not self.properties.get(Constants.PROP_CONTENT_LANGUAGE, None) is None:
-            result = self.properties.get(Constants.PROP_CONTENT_LANGUAGE).textof()
-        return result
+        xml = self.properties.get(Constants.PROP_CONTENT_LANGUAGE)
+        if xml:
+            return xml.textof()
 
     def getContentLength(self):
         """
-        Returns the length of the resource's content in bytes.
+        Returns the length of the resource's content in bytes or C{None}.
         
-        @return: number of bytes
+        @rtype: C{int}
         """
         
-        result = None
-        if not self.properties.get(Constants.PROP_CONTENT_LENGTH, None) is None:
-            result = int(self.properties.get(Constants.PROP_CONTENT_LENGTH).textof())
-        return result
+        xml = self.properties.get(Constants.PROP_CONTENT_LENGTH)
+        if xml:
+            return xml.textof()
 
     def getContentType(self):
         """
-        Return the resource's content MIME type.
+        Return the resource's content MIME type or C{None}.
         
-        @return: MIME type string
+        @rtype: C{string}
         """
         
-        result = None
-        if not self.properties.get(Constants.PROP_CONTENT_TYPE, None) is None:
-            result = self.properties.get(Constants.PROP_CONTENT_TYPE).textof()
-        return result
+        xml = self.properties.get(Constants.PROP_CONTENT_TYPE)
+        if xml:
+            return xml.textof()
 
     def getCreationDate(self):
         """
-        Return date of creation as time tuple.
+        Return the creation date as time tuple or C{None}.
                 
-        @return: time tuple
-        @rtype: C{time.struct_time} or C{None} if the modification date is not available.
+        @rtype: C{time.struct_time}
         """
         
         datetimeString = None
-        if not self.properties.get(Constants.PROP_CREATION_DATE, None) is None:
-            datetimeString = self.properties.get(Constants.PROP_CREATION_DATE).textof()
+        xml = self.properties.get(Constants.PROP_CREATION_DATE)
+        if xml:
+            datetimeString = xml.textof()
         
-        if datetimeString is None:
-            return None
-        else:
+        if datetimeString:
             try:
                 return _parseIso8601String(datetimeString)
             except ValueError:
@@ -331,44 +327,40 @@ class LiveProperties(object):
             
     def getEntityTag(self):
         """
-        Return a entity tag which is unique for a particular version of a resource.
+        Return a entity tag which is unique for a particular version of a resource or C{None}.
         Different resources or one resource before and after modification have different etags. 
         
-        @return: entity tag string
+        @rtype: C{string}
         """
         
-        result = None
-        if not self.properties.get(Constants.PROP_ETAG, None) is None:
-            result = self.properties.get(Constants.PROP_ETAG).textof()
-        return result
+        xml = self.properties.get(Constants.PROP_ETAG)
+        if xml:
+            return xml.textof()
             
     def getDisplayName(self):
         """
-        Returns a resource's display name.
+        Returns a resource's display name or C{None}.
         
-        @return: string
+        @rtype: C{string}
         """
         
-        result = None
-        if not self.properties.get(Constants.PROP_DISPLAY_NAME, None) is None:
-            result = self.properties.get(Constants.PROP_DISPLAY_NAME).textof()
-        return result
+        xml = self.properties.get(Constants.PROP_DISPLAY_NAME)
+        if xml:
+            return xml.textof()
 
     def getLastModified(self):
         """
-        Return last modification of resource as time tuple.
+        Return last modification of a resource as time tuple or C{None}.
         
-        @return: Modification date time.
-        @rtype:  C{time.struct_time} or C{None} if the modification date is not available.
+        @rtype: C{time.struct_time}
         """
         
         datetimeString = None
-        if not self.properties.get(Constants.PROP_LAST_MODIFIED, None) is None:
-            datetimeString = self.properties.get(Constants.PROP_LAST_MODIFIED).textof()
+        xml = self.properties.get(Constants.PROP_LAST_MODIFIED)
+        if xml:
+            datetimeString = xml.textof()
 
-        if datetimeString is None:
-            return None
-        else:
+        if datetimeString:
             try:
                 result = rfc822.parsedate(datetimeString)
                 if result is None:
@@ -381,19 +373,22 @@ class LiveProperties(object):
                 
     def getLockDiscovery(self):
         """
-        Return all current lock's applied to a resource or null if it is not locked.
+        Return all current locks applied to a resource or C{None} if it is not locked. The lock is represented by 
+        a C{lockdiscovery} DOM element according to RFC 4918, Section 15.8.1.
         
-        @return: a lockdiscovery DOM element according to RFC 2815
+        @rtype: C{string}
         """
         
         xml = self.properties.get(Constants.PROP_LOCK_DISCOVERY)
-        return _scanLockDiscovery(xml)
+        if xml:
+            return _scanLockDiscovery(xml)
 
     def getResourceType(self):
         """
-        Return a resource's WebDAV type.
-        
-        @return: 'collection' or 'resource'
+        Return a resource's WebDAV type:
+         * 'collection' => WebDAV Collection
+         * 'resource' => WebDAV resource
+        @rtype: C{string}
         """
         
         xml = self.properties.get(Constants.PROP_RESOURCE_TYPE)
@@ -404,25 +399,24 @@ class LiveProperties(object):
     def getSupportedLock(self):
         """
         Return a DOM element describing all supported lock options for a resource.
-        Usually this is shared and exclusive write lock.
+        Shared and exclusive write locks are usually supported. The supported locks are represented by       
+        a C{supportedlock} DOM element according to RFC 4918, Section 15.10.1.
         
-        @return: supportedlock DOM element according to RFC 2815
+        rtype: C{string}
         """
         
-        xml = self.properties.get(Constants.PROP_SUPPORTED_LOCK)
-        return xml
+        return self.properties.get(Constants.PROP_SUPPORTED_LOCK)
 
     def getOwnerAsUrl(self):
         """
-        Return a resource's owner in form of a URL.
+        Return a resource's owner represented as URL or C{None}.
         
-        @return: string
+        @rtype: C{string}
         """
         
         xml = self.properties.get(Constants.PROP_OWNER)
-        if xml and len(xml.children):
+        if xml and xml.children:
             return xml.children[0].textof()
-        return None
 
     def __str__(self):
         result = ""
@@ -434,9 +428,13 @@ class LiveProperties(object):
         result += "\n Created="
         if self.getCreationDate():
             result += time.strftime("%c GMT", self.getCreationDate())
+        else:
+            result += "None"
         result += "\n Modified="
         if self.getLastModified():
             result += time.strftime("%c GMT", self.getLastModified())
+        else:
+            result += "None"
         return result
 
 
