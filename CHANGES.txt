@@ -1,3 +1,13 @@
+0.4.0
+=====
+* Feature release
+* Main program of "webdav.WebdavClient" supports download of files. URLs without leading slash ("/") are interpreted as a downloadable file.
+* The interface of "webdav.WebdavResponse.LiveProperties" is more convenient to use. Generally, missing values are interpreted as "None".
+* Fixed problem when asking for a single WebDAV property. This caused a problem with collection validation with certain servers.
+* Improved debug messages of "webdav.Connection.Connection".
+
+Special thanks to Mark Rison for his valuable input!!
+
 0.3.1
 =====
 * Bug fix release
