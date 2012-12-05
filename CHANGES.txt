@@ -1,5 +1,10 @@
 0.4.0
 =====
+* Bug fix release
+* Corrected evaluation of property requests because some servers handle the depth=0 header incorrectly.
+
+0.4.0
+=====
 * Feature release
 * Main program of "webdav.WebdavClient" supports download of files. URLs without leading slash ("/") are interpreted as a downloadable file.
 * The interface of "webdav.WebdavResponse.LiveProperties" is more convenient to use. Generally, missing values are interpreted as "None".
@@ -23,7 +28,7 @@ Special thanks to Mark Rison for his valuable input!!
 * Enhanced compatibility: Usage of Python 2.4 and Jython >= 2.5.1 is now supported, too.
 
 0.2.0
-====
+=====
 * Feature release
 * Extended HTTP digest authentication support (see default usage scenario)
 * Fixed redefinition of the "lock" method
