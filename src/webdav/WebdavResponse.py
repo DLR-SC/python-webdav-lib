@@ -364,7 +364,7 @@ class LiveProperties(object):
             try:
                 result = rfc822.parsedate(datetimeString)
                 if result is None:
-                    result = _parseIso8601String(datetimeString)
+                    result = _parseIso8601String(datetimeString) # Some servers like Tamino use ISO 8601
                 return time.struct_time(result)
             except ValueError:
                 self._logger.debug(
