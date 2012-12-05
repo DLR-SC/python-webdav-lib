@@ -81,7 +81,7 @@ class ResourceStorer(object):
     """
         
     # Instance properties
-    url = property(lambda self: str(self.connection) + self.path, None, None, "Resource's URL")
+    url = property(lambda self: self.connection.protocol + "://" + self.connection.host + self.path, None, None)
 
     def __init__(self, url, connection=None, validateResourceNames=True):
         """
@@ -387,10 +387,23 @@ class ResourceStorer(object):
         ignore404 = kwargs.pop('ignore404', False)
         body = createFindBody(names, self.defaultNamespace)
         response = self.connection.propfind(self.path, body, depth=0)
-        properties = response.msr.values()[0]
-        if  not ignore404 and properties.errorCount > 0 :
+        properties = self._filter_property_response(response)
+        if not ignore404 and properties.errorCount > 0 :
             raise WebdavError("Property is missing on '%s': %s" % (self.path, properties.reason), properties.code)
         return properties
+    
+    def _filter_property_response(self, response):
+        """ This is a workaround for servers which do not 
+        correctly handle the depth header. 
+        I.e., we simply try to identify the matching
+        response for the resource. """
+        
+        for key in [self.path, self.path[:-1], self.url]: # Server may return path or URL
+            try:
+                return response.msr[key]
+            except KeyError:
+                continue
+        raise WebdavError("No property result for '%s'" % self.url)
 
     def readProperty(self, nameSpace, name):
         """
@@ -415,7 +428,7 @@ class ResourceStorer(object):
         @return: a map from property names to DOM Element or String values.
         """
         response = self.connection.allprops(self.path, depth=0)
-        return response.msr.values()[0]
+        return self._filter_property_response(response)
 
     def readAllPropertyNames(self):
         """
@@ -424,7 +437,7 @@ class ResourceStorer(object):
         @return: List of property names
         """
         response = self.connection.propnames(self.path, depth=0)
-        return response.msr.values()[0]
+        return self._filter_property_response(response)
 
     def readStandardProperties(self):
         """
@@ -434,7 +447,7 @@ class ResourceStorer(object):
         """
         body = createFindBody(LiveProperties.NAMES, Constants.NS_DAV)
         response = self.connection.propfind(self.path, body, depth=0)
-        properties = response.msr.values()[0]
+        properties = self._filter_property_response(response)
         return LiveProperties(properties)
 
     def writeProperties(self, properties, lockToken=None):
@@ -454,7 +467,7 @@ class ResourceStorer(object):
             header = lockToken.toHeader()
         body = createUpdateBody(properties, self.defaultNamespace)
         response = self.connection.proppatch(self.path, body, header)
-        if  response.msr.errorCount > 0:
+        if response.msr.errorCount > 0:
             raise WebdavError("Request failed: " + response.msr.reason, response.msr.code)
 
     def deleteProperties(self, lockToken=None, *names):
@@ -583,7 +596,7 @@ class CollectionStorer(ResourceStorer):
         super(CollectionStorer, self).validate()
         isCollection = self.readProperty(Constants.NS_DAV, Constants.PROP_RESOURCE_TYPE)
         if not (isCollection and isCollection.children):
-            raise WebdavError("Not a collection URL.", 0)        
+            raise WebdavError("'%s' not a collection!" % self.url, 0)        
         
     def addCollection(self, name, lockToken=None):
         """
@@ -645,7 +658,7 @@ class CollectionStorer(ResourceStorer):
         if self.validateResourceNames:
             validateResourceName(name)
         response = self.connection.delete(self.path + name, header)
-        if  response.status == Constants.CODE_MULTISTATUS and response.msr.errorCount > 0:
+        if response.status == Constants.CODE_MULTISTATUS and response.msr.errorCount > 0:
             raise WebdavError("Request failed: %s" % response.msr.reason, response.msr.code)        
         
     def lockAll(self, owner):
