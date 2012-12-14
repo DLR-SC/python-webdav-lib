@@ -293,7 +293,10 @@ class LiveProperties(object):
         
         xml = self.properties.get(Constants.PROP_CONTENT_LENGTH)
         if xml:
-            return xml.textof()
+            try:
+                return int(xml.textof())
+            except (ValueError, TypeError):
+                self._logger.debug("Cannot convert content length to a numeric value.", exc_info=True)
 
     def getContentType(self):
         """
