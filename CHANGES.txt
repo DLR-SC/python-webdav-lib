@@ -1,3 +1,8 @@
+0.4.2
+=====
+* Bug fix release
+* Corrected return value of "webdav.WebdavResponse.LiveProperties.getContentLength". It returns int again.
+
 0.4.1
 =====
 * Bug fix release
