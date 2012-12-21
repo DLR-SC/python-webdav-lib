@@ -119,9 +119,9 @@ class Connection(DAV):
                         self.connect()
                     except (CannotSendRequest, socket.error, BadStatusLine, ResponseNotReady, IncompleteRead):
                         self.logger.debug("Connection failed.", exc_info=True)
-                        raise WebdavError("Cannot perform request. Connection failed.")
+                        raise WebdavError("Cannot perform request. Reconnection failed.")
                     if retry == Connection.MaxRetries - 1:
-                        raise WebdavError("Cannot perform request.")
+                        raise WebdavError("Cannot perform request. Failed even after retries.")
             return self.__evaluateResponse(method, response)
         finally:
             self._lock.release()
@@ -169,7 +169,7 @@ class Connection(DAV):
         if user and len(user) > 0:
             self.__authorizationInfo = _BasicAuthenticationInfo(realm=realm, user=user, password=password)
                    
-    def addDigestAuthorization(self, user, password, realm, qop, nonce, uri = None, method = None):
+    def addDigestAuthorization(self, user, password, realm, qop, nonce, uri=None, method=None):
         if user and len(user) > 0:
             # username, realm, password, uri, method, qop are required
             self.__authorizationInfo = _DigestAuthenticationInfo(realm=realm, user=user, password=password, uri=uri, method=method, qop=qop, nonce=nonce)
@@ -203,8 +203,8 @@ class Connection(DAV):
                 srcfile.close()
                 response = self.getresponse()
             except (CannotSendRequest, socket.error, BadStatusLine, ResponseNotReady):
-                self.logger.debug("Exception occurred! Retry...", exc_info=True)
-                raise WebdavError("Cannot perform request.")
+                self.logger.debug("Connection failed.", exc_info=True)
+                raise WebdavError("Cannot perform request. Connection failed.")
             status, reason = (response.status, response.reason)
             self.logger.debug("Status %d: %s" % (status, reason))
             try:
