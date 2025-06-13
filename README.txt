@@ -1,3 +1,6 @@
+> [!IMPORTANT]  
+> The software is no longer maintained and is provided only for reference.
+
 This Python WebDAV Library provides an object-oriented Python WebDAV client-side library based on Python`s standard httplib 
 and Greg Stein`s davlib. The client currently supports basic WebDAV capabilities and the WebDAV extensions for access control and
 Searching.
